@@ -54,7 +54,7 @@ watch(hasActive, (active) => (active ? start() : stop()), {
                         :nanos="totals.charge_nanos"
                         class="font-medium text-foreground"
                     />
-                    across {{ totals.succeeded_count }}
+                    for {{ totals.succeeded_count }} succeeded
                     {{
                         totals.succeeded_count === 1
                             ? 'generation'
