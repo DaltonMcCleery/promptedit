@@ -35,10 +35,10 @@ defineOptions({
 const MAX_PROMPT_CHARACTERS = 4000;
 const MAX_REFERENCE_IMAGES = 4;
 
-const sizes: { value: Size; label: string }[] = [
-    { value: '1024x1024', label: 'Square · 1024×1024' },
-    { value: '1536x1024', label: 'Landscape · 1536×1024' },
-    { value: '1024x1536', label: 'Portrait · 1024×1536' },
+const sizes: { value: Size; label: string; detail: string }[] = [
+    { value: '1024x1024', label: 'Square', detail: '1024×1024' },
+    { value: '1536x1024', label: 'Landscape', detail: '1536×1024' },
+    { value: '1024x1536', label: 'Portrait', detail: '1024×1536' },
 ];
 
 const qualities: { value: Quality; label: string }[] = [
@@ -137,7 +137,11 @@ function submit(): void {
         </div>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <form class="flex flex-col gap-6" @submit.prevent="submit">
+            <form
+                id="generate-form"
+                class="flex flex-col gap-6 lg:col-start-1 lg:row-start-1"
+                @submit.prevent="submit"
+            >
                 <div class="grid gap-2">
                     <div class="flex items-baseline justify-between">
                         <Label for="prompt">Prompt</Label>
@@ -170,7 +174,7 @@ function submit(): void {
 
                 <fieldset class="grid gap-2">
                     <legend class="mb-2 text-sm font-medium">Size</legend>
-                    <div class="grid gap-2 sm:grid-cols-3">
+                    <div class="grid grid-cols-3 gap-2">
                         <label
                             v-for="option in sizes"
                             :key="option.value"
@@ -181,9 +185,17 @@ function submit(): void {
                                 type="radio"
                                 name="size"
                                 :value="option.value"
-                                class="accent-primary"
+                                class="shrink-0 accent-primary"
                             />
-                            {{ option.label }}
+                            <span
+                                class="flex min-w-0 flex-col sm:flex-row sm:gap-1.5"
+                            >
+                                <span>{{ option.label }}</span>
+                                <span
+                                    class="text-xs text-muted-foreground sm:text-sm"
+                                    >{{ option.detail }}</span
+                                >
+                            </span>
                         </label>
                     </div>
                     <InputError :message="form.errors.size" />
@@ -191,7 +203,7 @@ function submit(): void {
 
                 <fieldset class="grid gap-2">
                     <legend class="mb-2 text-sm font-medium">Quality</legend>
-                    <div class="grid gap-2 sm:grid-cols-3">
+                    <div class="grid grid-cols-3 gap-2">
                         <label
                             v-for="option in qualities"
                             :key="option.value"
@@ -264,22 +276,11 @@ function submit(): void {
                         </Button>
                     </div>
                 </fieldset>
-
-                <div class="flex flex-col gap-2">
-                    <InputError :message="pricingError" />
-                    <div>
-                        <Button
-                            type="submit"
-                            :disabled="!canSubmit"
-                            data-test="generate-button"
-                        >
-                            {{ submitLabel }}
-                        </Button>
-                    </div>
-                </div>
             </form>
 
-            <aside class="lg:sticky lg:top-4 lg:self-start">
+            <aside
+                class="lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+            >
                 <CostEstimate v-if="liveEstimate" :estimate="liveEstimate" />
                 <div
                     v-else
@@ -291,6 +292,21 @@ function submit(): void {
                     load again.
                 </div>
             </aside>
+
+            <!-- Outside the form so phones show the estimate above it; form="" still submits the form. -->
+            <div class="flex flex-col gap-2 lg:col-start-1 lg:row-start-2">
+                <InputError :message="pricingError" />
+                <div>
+                    <Button
+                        type="submit"
+                        form="generate-form"
+                        :disabled="!canSubmit"
+                        data-test="generate-button"
+                    >
+                        {{ submitLabel }}
+                    </Button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
