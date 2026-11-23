@@ -1,13 +1,13 @@
 <?php
 
-use App\Billing\CostCalculator;
-use App\Generations\GenerationStatus;
-use App\Generations\Quality;
-use App\Generations\Size;
+use App\Enums\GenerationStatus;
+use App\Enums\Quality;
+use App\Enums\Size;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
 use App\Models\User;
-use App\Pixelforge\PricingRepository;
+use App\Services\Billing\CostCalculator;
+use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;

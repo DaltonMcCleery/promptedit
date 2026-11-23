@@ -1,6 +1,6 @@
 <?php
 
-use App\Pixelforge\WebhookSignature;
+use App\Services\Pixelforge\WebhookSignature;
 
 const SIGNING_SECRET = 'whsec_test';
 const SIGNED_AT = 1_762_265_009;

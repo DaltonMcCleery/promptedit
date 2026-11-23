@@ -1,6 +1,6 @@
 <?php
 
-use App\Generations\PendingReason;
+use App\Enums\PendingReason;
 use App\Models\Generation;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;

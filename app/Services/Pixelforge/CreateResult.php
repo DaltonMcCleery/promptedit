@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Pixelforge;
+namespace App\Services\Pixelforge;
+
+use App\Enums\CreateOutcome;
 
 final readonly class CreateResult
 {

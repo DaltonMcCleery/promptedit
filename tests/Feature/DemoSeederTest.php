@@ -1,11 +1,11 @@
 <?php
 
-use App\Billing\CostCalculator;
-use App\Generations\GenerationStatus;
+use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Models\User;
-use App\Pixelforge\PriceSheet;
-use App\Pixelforge\PricingRepository;
+use App\Services\Billing\CostCalculator;
+use App\Services\Pixelforge\PriceSheet;
+use App\Services\Pixelforge\PricingRepository;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;

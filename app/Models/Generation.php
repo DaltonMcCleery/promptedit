@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
-use App\Generations\GenerationStatus;
-use App\Generations\PendingReason;
-use App\Generations\Quality;
-use App\Generations\Size;
+use App\Enums\GenerationStatus;
+use App\Enums\PendingReason;
+use App\Enums\Quality;
+use App\Enums\Size;
 use Database\Factories\GenerationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -76,6 +78,39 @@ class Generation extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Not yet sent to, or not yet accepted by, Pixelforge.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function submitting(Builder $query): void
+    {
+        $query->where('status', GenerationStatus::Submitting);
+    }
+
+    /**
+     * Using one of Pixelforge's concurrent slots: queued or processing.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function inFlight(Builder $query): void
+    {
+        $query->whereIn('status', [GenerationStatus::Queued, GenerationStatus::Processing]);
+    }
+
+    /**
+     * Finished with an image, so billed.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function succeeded(Builder $query): void
+    {
+        $query->where('status', GenerationStatus::Succeeded);
     }
 
     /**

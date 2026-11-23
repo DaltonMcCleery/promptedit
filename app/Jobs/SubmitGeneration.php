@@ -2,14 +2,15 @@
 
 namespace App\Jobs;
 
-use App\Generations\FailureReason;
-use App\Generations\GenerationStatus;
-use App\Generations\GenerationStatusUpdater;
-use App\Generations\PendingReason;
+use App\Enums\CreateOutcome;
+use App\Enums\FailureCode;
+use App\Enums\GenerationStatus;
+use App\Enums\PendingReason;
+use App\Enums\UpdateSource;
 use App\Models\Generation;
-use App\Pixelforge\CreateOutcome;
-use App\Pixelforge\CreateResult;
-use App\Pixelforge\PixelforgeClient;
+use App\Services\GenerationStatusUpdater;
+use App\Services\Pixelforge\CreateResult;
+use App\Services\Pixelforge\PixelforgeClient;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -26,18 +27,27 @@ class SubmitGeneration implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
 
+    /**
+     * One run per dispatch: retries are new dispatches with their own delay.
+     * If a run crashes, generations:reconcile re-dispatches it.
+     */
+    public int $tries = 1;
+
+    /** Longer than the HTTP client's 5 s connect + 15 s timeout. */
+    public int $timeout = 30;
+
     /** 503 overloaded and 429 rate limit responses allowed before giving up. */
-    public const MAX_ATTEMPTS = 5;
+    public const int MAX_ATTEMPTS = 5;
 
     /** How long to wait for one of Pixelforge's concurrent slots before giving up. */
-    public const SLOT_WAIT_MINUTES = 10;
+    public const int SLOT_WAIT_MINUTES = 10;
 
     /** Pixelforge allows 3 generations queued or processing at once. */
-    public const CONCURRENT_GENERATIONS = 3;
+    public const int CONCURRENT_GENERATIONS = 3;
 
-    private const SLOT_RETRY_SECONDS = 5;
+    private const int SLOT_RETRY_SECONDS = 5;
 
-    private const MAX_BACKOFF_SECONDS = 60;
+    private const int MAX_BACKOFF_SECONDS = 60;
 
     public function __construct(public Generation $generation) {}
 
@@ -76,10 +86,10 @@ class SubmitGeneration implements ShouldBeUniqueUntilProcessing, ShouldQueue
         ], $generation->idempotency_key, $generation->id);
 
         match ($result->outcome) {
-            CreateOutcome::Accepted => $updater->apply($generation, $result->generation, 'create'),
+            CreateOutcome::Accepted => $updater->apply($generation, $result->generation, UpdateSource::CreateResponse),
             CreateOutcome::Retryable => $this->retryAfterRejection($generation, $updater, $result),
             CreateOutcome::NoSlot => $this->waitForSlot($generation, $updater, $result->retryAfterSeconds ?? self::SLOT_RETRY_SECONDS),
-            CreateOutcome::Final => $updater->failAtSubmission($generation, $result->errorCode ?? 'unknown_error', $result->errorMessage),
+            CreateOutcome::Final => $updater->failAtSubmission($generation, $result->errorCode, $result->errorMessage),
             CreateOutcome::Unknown => $this->retryUnreachable($generation),
         };
     }
@@ -89,9 +99,7 @@ class SubmitGeneration implements ShouldBeUniqueUntilProcessing, ShouldQueue
      */
     private function allSlotsBusy(): bool
     {
-        return Generation::query()
-            ->whereIn('status', [GenerationStatus::Queued, GenerationStatus::Processing])
-            ->count() >= self::CONCURRENT_GENERATIONS;
+        return Generation::query()->inFlight()->count() >= self::CONCURRENT_GENERATIONS;
     }
 
     /**
@@ -103,7 +111,7 @@ class SubmitGeneration implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $attempts = $generation->submit_attempts + 1;
 
         if ($attempts >= self::MAX_ATTEMPTS) {
-            $updater->failAtSubmission($generation, $result->errorCode ?? 'overloaded', $result->errorMessage);
+            $updater->failAtSubmission($generation, $result->errorCode ?? FailureCode::Overloaded->value, $result->errorMessage);
 
             return;
         }
@@ -123,7 +131,7 @@ class SubmitGeneration implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $waitingSince = $generation->waiting_since ?? now();
 
         if ($waitingSince->lte(now()->subMinutes(self::SLOT_WAIT_MINUTES))) {
-            $updater->failAtSubmission($generation, FailureReason::CONCURRENCY_TIMEOUT);
+            $updater->failAtSubmission($generation, FailureCode::ConcurrencyTimeout->value);
 
             return;
         }
@@ -159,7 +167,7 @@ class SubmitGeneration implements ShouldBeUniqueUntilProcessing, ShouldQueue
     {
         $updated = Generation::query()
             ->whereKey($generation->id)
-            ->where('status', GenerationStatus::Submitting)
+            ->submitting()
             ->update([...$attributes, 'next_attempt_at' => now()->addSeconds($seconds)]);
 
         if ($updated === 1) {

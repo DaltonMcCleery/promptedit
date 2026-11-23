@@ -31,21 +31,21 @@ The docs' worked example is a test: high quality, 1536x1024, a 400-character pro
 
 ## Code map
 
-| Concern                   | Where                                                                                                                        |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Money units               | `app/Billing/Nanos.php`                                                                                                      |
-| All price calculations    | `app/Billing/CostCalculator.php`, `app/Billing/Estimate.php`                                                                 |
-| Pricing from Pixelforge   | `app/Pixelforge/PricingRepository.php`, `app/Pixelforge/PriceSheet.php`                                                      |
-| Pixelforge HTTP client    | `app/Pixelforge/PixelforgeClient.php`, `CreateResult.php`, `CreateOutcome.php`                                               |
-| Saving a generation       | `app/Generations/CreateGeneration.php`, `app/Http/Requests/StoreGenerationRequest.php`                                       |
-| Submitting and retries    | `app/Jobs/SubmitGeneration.php`                                                                                              |
-| Status rules and charging | `app/Generations/GenerationStatusUpdater.php`                                                                                |
-| Webhooks                  | `app/Http/Controllers/PixelforgeWebhookController.php`, `app/Pixelforge/WebhookSignature.php` (route in `bootstrap/app.php`) |
-| Polling fallback          | `app/Console/Commands/ReconcileGenerations.php` (scheduled in `routes/console.php`)                                          |
-| Failure wording           | `app/Generations/FailureReason.php`                                                                                          |
-| Admin report              | `app/Admin/UsageReport.php`, `app/Http/Controllers/Admin/ReportController.php`, `resources/js/pages/Admin/Report.vue`        |
-| Pages                     | `resources/js/pages/Generations/Create.vue`, `resources/js/pages/Generations/Index.vue`                                      |
-| Browser price math        | `resources/js/lib/pricing.ts`, `resources/js/lib/money.ts`                                                                   |
+| Concern                                                       | Where                                                                                                                                 |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Money units                                                   | `app/Services/Billing/Nanos.php`                                                                                                      |
+| All price calculations                                        | `app/Services/Billing/CostCalculator.php`, `app/Services/Billing/Estimate.php`                                                        |
+| Pricing from Pixelforge                                       | `app/Services/Pixelforge/PricingRepository.php`, `app/Services/Pixelforge/PriceSheet.php`                                             |
+| Pixelforge HTTP client                                        | `app/Services/Pixelforge/PixelforgeClient.php`, `app/Services/Pixelforge/CreateResult.php`                                            |
+| Saving a generation                                           | `app/Actions/CreateGeneration.php`, `app/Http/Requests/StoreGenerationRequest.php`                                                    |
+| Submitting and retries                                        | `app/Jobs/SubmitGeneration.php`                                                                                                       |
+| Status rules and charging                                     | `app/Services/GenerationStatusUpdater.php`                                                                                            |
+| Webhooks                                                      | `app/Http/Controllers/PixelforgeWebhookController.php`, `app/Services/Pixelforge/WebhookSignature.php` (route in `bootstrap/app.php`) |
+| Polling fallback                                              | `app/Console/Commands/ReconcileGenerations.php` (scheduled in `routes/console.php`)                                                   |
+| Statuses, sizes, token types, failure codes and their wording | `app/Enums/`                                                                                                                          |
+| Admin report                                                  | `app/Services/UsageReport.php`, `app/Http/Controllers/Admin/ReportController.php`, `resources/js/pages/Admin/Report.vue`              |
+| Pages                                                         | `resources/js/pages/Generations/Create.vue`, `resources/js/pages/Generations/Index.vue`                                               |
+| Browser price math                                            | `resources/js/lib/pricing.ts`, `resources/js/lib/money.ts`                                                                            |
 
 ## Admin report
 

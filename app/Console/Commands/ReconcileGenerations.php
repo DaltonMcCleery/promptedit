@@ -2,11 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Generations\GenerationStatus;
-use App\Generations\GenerationStatusUpdater;
+use App\Enums\UpdateSource;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
-use App\Pixelforge\PixelforgeClient;
+use App\Services\GenerationStatusUpdater;
+use App\Services\Pixelforge\PixelforgeClient;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -23,9 +23,9 @@ use Illuminate\Http\Client\RequestException;
 #[Description('Poll Pixelforge for generations with no recent update and resend lost submissions')]
 class ReconcileGenerations extends Command
 {
-    public const POLLS_PER_RUN = 20;
+    public const int POLLS_PER_RUN = 20;
 
-    private const STALE_AFTER_MINUTES = 2;
+    private const int STALE_AFTER_MINUTES = 2;
 
     public function handle(PixelforgeClient $client, GenerationStatusUpdater $updater): int
     {
@@ -43,7 +43,7 @@ class ReconcileGenerations extends Command
     private function pollStaleGenerations(PixelforgeClient $client, GenerationStatusUpdater $updater): int
     {
         $generations = Generation::query()
-            ->whereIn('status', [GenerationStatus::Queued, GenerationStatus::Processing])
+            ->inFlight()
             ->whereNotNull('pixelforge_id')
             ->where('status_changed_at', '<=', now()->subMinutes(self::STALE_AFTER_MINUTES))
             ->where(fn ($query) => $query
@@ -62,7 +62,7 @@ class ReconcileGenerations extends Command
                 continue;
             }
 
-            $updater->apply($generation, $object, 'poll');
+            $updater->apply($generation, $object, UpdateSource::Poll);
         }
 
         return $generations->count();
@@ -76,7 +76,7 @@ class ReconcileGenerations extends Command
     private function resendLostSubmissions(): int
     {
         $generations = Generation::query()
-            ->where('status', GenerationStatus::Submitting)
+            ->submitting()
             ->whereNotNull('next_attempt_at')
             ->where('next_attempt_at', '<=', now()->subMinutes(self::STALE_AFTER_MINUTES))
             ->get();

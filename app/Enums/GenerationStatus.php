@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Generations;
+namespace App\Enums;
 
 enum GenerationStatus: string
 {

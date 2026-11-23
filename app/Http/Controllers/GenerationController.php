@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Generations\CreateGeneration;
-use App\Generations\GenerationStatus;
+use App\Actions\CreateGeneration;
 use App\Http\Requests\StoreGenerationRequest;
 use App\Http\Resources\GenerationResource;
-use App\Pixelforge\PricingRepository;
+use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,8 +25,8 @@ class GenerationController extends Controller
                 $generations->clone()->latest()->latest('id')->paginate(20),
             ),
             'totals' => fn () => [
-                'charge_nanos' => (int) $generations->clone()->where('status', GenerationStatus::Succeeded)->sum('charge_nanos'),
-                'succeeded_count' => $generations->clone()->where('status', GenerationStatus::Succeeded)->count(),
+                'charge_nanos' => (int) $generations->clone()->succeeded()->sum('charge_nanos'),
+                'succeeded_count' => $generations->clone()->succeeded()->count(),
             ],
         ]);
     }

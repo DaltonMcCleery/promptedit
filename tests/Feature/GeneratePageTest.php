@@ -2,7 +2,7 @@
 
 use App\Models\Generation;
 use App\Models\User;
-use App\Pixelforge\PricingRepository;
+use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;

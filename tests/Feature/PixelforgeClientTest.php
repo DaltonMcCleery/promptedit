@@ -1,8 +1,8 @@
 <?php
 
-use App\Pixelforge\CreateOutcome;
-use App\Pixelforge\CreateResult;
-use App\Pixelforge\PixelforgeClient;
+use App\Enums\CreateOutcome;
+use App\Services\Pixelforge\CreateResult;
+use App\Services\Pixelforge\PixelforgeClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;

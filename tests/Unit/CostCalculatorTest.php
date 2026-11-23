@@ -1,9 +1,9 @@
 <?php
 
-use App\Billing\CostCalculator;
-use App\Generations\Quality;
-use App\Generations\Size;
-use App\Pixelforge\PriceSheet;
+use App\Enums\Quality;
+use App\Enums\Size;
+use App\Services\Billing\CostCalculator;
+use App\Services\Pixelforge\PriceSheet;
 
 it('reproduces the docs worked example maximum exactly', function () {
     $estimate = CostCalculator::estimate(docsPriceSheet(), str_repeat('a', 400), Size::Landscape, Quality::High, 2);

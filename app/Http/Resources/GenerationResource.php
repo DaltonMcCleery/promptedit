@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
-use App\Generations\FailureReason;
-use App\Generations\GenerationStatus;
+use App\Enums\FailureCode;
+use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -35,7 +35,7 @@ class GenerationResource extends JsonResource
             'estimate_min_nanos' => $this->estimate_min_nanos,
             'estimate_max_nanos' => $this->estimate_max_nanos,
             'charge_nanos' => $this->charge_nanos,
-            'failure_reason' => $this->status === GenerationStatus::Failed ? FailureReason::for($this->failure_code) : null,
+            'failure_reason' => $this->status === GenerationStatus::Failed ? FailureCode::reasonFor($this->failure_code) : null,
             'image_url' => $this->image_url,
             'image_url_expires_at' => $this->image_url_expires_at?->toIso8601ZuluString(),
             'created_at' => $this->created_at?->toIso8601ZuluString(),

@@ -1,11 +1,12 @@
 <?php
 
-use App\Billing\CostCalculator;
-use App\Generations\GenerationStatus;
-use App\Generations\GenerationStatusUpdater;
-use App\Generations\PendingReason;
+use App\Enums\GenerationStatus;
+use App\Enums\PendingReason;
+use App\Enums\UpdateSource;
 use App\Models\Generation;
-use App\Pixelforge\PricingRepository;
+use App\Services\Billing\CostCalculator;
+use App\Services\GenerationStatusUpdater;
+use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Support\Facades\Cache;
 
 function updater(): GenerationStatusUpdater
@@ -16,9 +17,9 @@ function updater(): GenerationStatusUpdater
 it('moves forward through queued and processing to succeeded and records the exact cost', function () {
     $generation = Generation::factory()->create(['pending_reason' => PendingReason::Unreachable]);
 
-    updater()->apply($generation, pixelforgeGeneration(), 'create');
-    updater()->apply($generation, pixelforgeGeneration(['status' => 'processing', 'started_at' => '2026-11-04T14:03:13Z']), 'webhook');
-    $result = updater()->apply($generation, pixelforgeSucceededGeneration(), 'webhook');
+    updater()->apply($generation, pixelforgeGeneration(), UpdateSource::CreateResponse);
+    updater()->apply($generation, pixelforgeGeneration(['status' => 'processing', 'started_at' => '2026-11-04T14:03:13Z']), UpdateSource::Webhook);
+    $result = updater()->apply($generation, pixelforgeSucceededGeneration(), UpdateSource::Webhook);
 
     expect($result->status)->toBe(GenerationStatus::Succeeded)
         ->and($result->pending_reason)->toBeNull()
@@ -35,16 +36,16 @@ it('takes the completion time from Pixelforge, not the clock', function () {
     $this->travelTo('2026-11-05 00:00:03');
     $generation = Generation::factory()->processing()->create();
 
-    $result = updater()->apply($generation, pixelforgeSucceededGeneration(['completed_at' => '2026-11-04T23:59:58Z']), 'webhook');
+    $result = updater()->apply($generation, pixelforgeSucceededGeneration(['completed_at' => '2026-11-04T23:59:58Z']), UpdateSource::Webhook);
 
     expect($result->completed_at->toIso8601ZuluString())->toBe('2026-11-04T23:59:58Z');
 });
 
 it('ignores a processing event that arrives after succeeded', function () {
     $generation = Generation::factory()->processing()->create();
-    updater()->apply($generation, pixelforgeSucceededGeneration(), 'webhook');
+    updater()->apply($generation, pixelforgeSucceededGeneration(), UpdateSource::Webhook);
 
-    $result = updater()->apply($generation, pixelforgeGeneration(['status' => 'processing']), 'webhook');
+    $result = updater()->apply($generation, pixelforgeGeneration(['status' => 'processing']), UpdateSource::Webhook);
 
     expect($result->status)->toBe(GenerationStatus::Succeeded)
         ->and($result->charge_nanos)->toBe(381_887_500);
@@ -52,11 +53,11 @@ it('ignores a processing event that arrives after succeeded', function () {
 
 it('charges once when succeeded is reported twice with different usage', function () {
     $generation = Generation::factory()->processing()->create();
-    updater()->apply($generation, pixelforgeSucceededGeneration(), 'webhook');
+    updater()->apply($generation, pixelforgeSucceededGeneration(), UpdateSource::Webhook);
 
     $result = updater()->apply($generation, pixelforgeSucceededGeneration([
         'usage' => ['input_text_tokens' => 99, 'input_image_tokens' => 0, 'output_tokens' => 1, 'reasoning_tokens' => 1, 'total_tokens' => 101],
-    ]), 'poll');
+    ]), UpdateSource::Poll);
 
     expect($result->charge_nanos)->toBe(381_887_500)
         ->and($result->usage['input_text_tokens'])->toBe(12);
@@ -64,9 +65,9 @@ it('charges once when succeeded is reported twice with different usage', functio
 
 it('never moves between the two final states', function () {
     $generation = Generation::factory()->processing()->create();
-    updater()->apply($generation, pixelforgeGeneration(['status' => 'failed', 'error' => ['code' => 'internal_error', 'message' => 'Oops.']]), 'webhook');
+    updater()->apply($generation, pixelforgeGeneration(['status' => 'failed', 'error' => ['code' => 'internal_error', 'message' => 'Oops.']]), UpdateSource::Webhook);
 
-    $result = updater()->apply($generation, pixelforgeSucceededGeneration(), 'webhook');
+    $result = updater()->apply($generation, pixelforgeSucceededGeneration(), UpdateSource::Webhook);
 
     expect($result->status)->toBe(GenerationStatus::Failed)
         ->and($result->charge_nanos)->toBe(0);
@@ -79,7 +80,7 @@ it('records a failure after acceptance at $0 with its reason', function () {
         'status' => 'failed',
         'error' => ['code' => 'generation_failed', 'message' => 'The model could not produce an image.'],
         'completed_at' => '2026-11-04T14:03:20Z',
-    ]), 'webhook');
+    ]), UpdateSource::Webhook);
 
     expect($result->status)->toBe(GenerationStatus::Failed)
         ->and($result->failure_code)->toBe('generation_failed')
@@ -92,7 +93,7 @@ it('records a failure after acceptance at $0 with its reason', function () {
 it('accepts a generation that is already finished when it is first reported', function () {
     $generation = Generation::factory()->create();
 
-    $result = updater()->apply($generation, pixelforgeSucceededGeneration(), 'create');
+    $result = updater()->apply($generation, pixelforgeSucceededGeneration(), UpdateSource::CreateResponse);
 
     expect($result->status)->toBe(GenerationStatus::Succeeded)
         ->and($result->rates)->toEqual(pixelforgePricing()['rates'])
@@ -102,7 +103,7 @@ it('accepts a generation that is already finished when it is first reported', fu
 it('records the Pixelforge id and rates from whichever update arrives first', function () {
     $generation = Generation::factory()->create();
 
-    $result = updater()->apply($generation, pixelforgeGeneration(['status' => 'processing']), 'webhook');
+    $result = updater()->apply($generation, pixelforgeGeneration(['status' => 'processing']), UpdateSource::Webhook);
 
     expect($result->pixelforge_id)->toBe('gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K')
         ->and($result->rates)->toEqual(pixelforgePricing()['rates']);
@@ -111,7 +112,7 @@ it('records the Pixelforge id and rates from whichever update arrives first', fu
 it('keeps the estimate unchanged when the frozen rates match', function () {
     $generation = Generation::factory()->create();
 
-    $result = updater()->apply($generation, pixelforgeSucceededGeneration(), 'webhook');
+    $result = updater()->apply($generation, pixelforgeSucceededGeneration(), UpdateSource::Webhook);
 
     expect($result->estimate_min_nanos)->toBe(58_175_000)
         ->and($result->estimate_max_nanos)->toBe(86_325_000);
@@ -122,7 +123,7 @@ it('re-estimates at the frozen rates when Pixelforge changed its prices', functi
     $generation = Generation::factory()->create(['prompt' => str_repeat('a', 40)]);
     $newRates = array_replace(pixelforgePricing()['rates'], ['output_tokens' => '50.00']);
 
-    $result = updater()->apply($generation, pixelforgeGeneration(['rates' => $newRates]), 'create');
+    $result = updater()->apply($generation, pixelforgeGeneration(['rates' => $newRates]), UpdateSource::CreateResponse);
 
     $expected = CostCalculator::estimate(docsPriceSheet()->withRates($newRates), $generation->prompt, $generation->size, $generation->quality, 0);
 
@@ -134,7 +135,7 @@ it('re-estimates at the frozen rates when Pixelforge changed its prices', functi
 it('ignores an object with an unknown status', function () {
     $generation = Generation::factory()->queued()->create();
 
-    $result = updater()->apply($generation, pixelforgeGeneration(['status' => 'exploded']), 'webhook');
+    $result = updater()->apply($generation, pixelforgeGeneration(['status' => 'exploded']), UpdateSource::Webhook);
 
     expect($result->status)->toBe(GenerationStatus::Queued);
 });

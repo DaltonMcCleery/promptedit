@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Generations;
+namespace App\Enums;
 
 /**
  * Why a generation is still submitting, shown as its badge.

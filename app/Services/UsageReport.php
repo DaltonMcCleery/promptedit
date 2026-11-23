@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Admin;
+namespace App\Services;
 
-use App\Billing\Nanos;
-use App\Generations\GenerationStatus;
 use App\Models\Generation;
-use App\Pixelforge\PixelforgeClient;
+use App\Services\Billing\Nanos;
+use App\Services\Pixelforge\PixelforgeClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
@@ -21,9 +20,9 @@ use Illuminate\Support\Facades\Cache;
  */
 class UsageReport
 {
-    public const DAYS = 30;
+    public const int DAYS = 30;
 
-    private const USAGE_CACHE_SECONDS = 120;
+    private const int USAGE_CACHE_SECONDS = 120;
 
     public function __construct(private PixelforgeClient $client) {}
 
@@ -43,7 +42,7 @@ class UsageReport
         $start = $end->subDays(self::DAYS - 1);
 
         $billed = Generation::query()
-            ->where('status', GenerationStatus::Succeeded)
+            ->succeeded()
             ->where('completed_at', '>=', $start)
             ->where('completed_at', '<', $end->addDay());
 

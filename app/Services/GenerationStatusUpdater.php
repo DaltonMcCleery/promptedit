@@ -1,11 +1,13 @@
 <?php
 
-namespace App\Generations;
+namespace App\Services;
 
-use App\Billing\CostCalculator;
+use App\Enums\GenerationStatus;
+use App\Enums\UpdateSource;
 use App\Models\Generation;
-use App\Pixelforge\PriceSheet;
-use App\Pixelforge\PricingRepository;
+use App\Services\Billing\CostCalculator;
+use App\Services\Pixelforge\PriceSheet;
+use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -23,9 +25,8 @@ class GenerationStatusUpdater
 
     /**
      * @param  array<string, mixed>  $object  Pixelforge's generation object.
-     * @param  string  $source  Where the object came from: create, webhook or poll.
      */
-    public function apply(Generation $generation, array $object, string $source): Generation
+    public function apply(Generation $generation, array $object, UpdateSource $source): Generation
     {
         return DB::transaction(function () use ($generation, $object, $source): Generation {
             $locked = $this->lock($generation);
@@ -34,7 +35,7 @@ class GenerationStatusUpdater
             if ($status === null) {
                 Log::warning('Ignored a Pixelforge generation object with an unknown status.', [
                     'generation_id' => $locked->id,
-                    'source' => $source,
+                    'source' => $source->value,
                 ]);
 
                 return $locked;
@@ -55,7 +56,7 @@ class GenerationStatusUpdater
     /**
      * Fail a generation that Pixelforge rejected before creating anything.
      */
-    public function failAtSubmission(Generation $generation, string $code, ?string $message = null): Generation
+    public function failAtSubmission(Generation $generation, ?string $code, ?string $message = null): Generation
     {
         return DB::transaction(function () use ($generation, $code, $message): Generation {
             $locked = $this->lock($generation);

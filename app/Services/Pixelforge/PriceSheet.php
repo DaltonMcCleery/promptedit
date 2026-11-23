@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Pixelforge;
+namespace App\Services\Pixelforge;
 
-use App\Billing\Nanos;
-use App\Generations\Quality;
-use App\Generations\Size;
+use App\Enums\Quality;
+use App\Enums\Size;
+use App\Enums\TokenType;
+use App\Services\Billing\Nanos;
 
 /**
  * Pixelforge's published pricing (GET /v1/pricing), converted to integers once
@@ -12,8 +13,6 @@ use App\Generations\Size;
  */
 final readonly class PriceSheet
 {
-    public const TOKEN_TYPES = ['input_text_tokens', 'input_image_tokens', 'output_tokens', 'reasoning_tokens'];
-
     /**
      * @param  array<string, string>  $rateStrings  Rates as Pixelforge sent them, in dollars per 1M tokens.
      * @param  array<string, int>  $rates  Nanodollars per 1M tokens, keyed like $rateStrings.
@@ -59,8 +58,8 @@ final readonly class PriceSheet
     {
         $parsed = [];
 
-        foreach (self::TOKEN_TYPES as $type) {
-            $parsed[$type] = Nanos::fromDecimal((string) $rates[$type]);
+        foreach (TokenType::cases() as $type) {
+            $parsed[$type->value] = Nanos::fromDecimal((string) $rates[$type->value]);
         }
 
         return $parsed;

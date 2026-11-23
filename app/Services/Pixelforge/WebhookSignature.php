@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Pixelforge;
+namespace App\Services\Pixelforge;
 
 /**
  * Checks the Pixelforge-Signature header: t=<unix timestamp>,v1=<hex HMAC-SHA256
@@ -9,7 +9,7 @@ namespace App\Pixelforge;
 final class WebhookSignature
 {
     /** Reject timestamps further than this from our clock, to stop replays. */
-    public const TOLERANCE_SECONDS = 300;
+    public const int TOLERANCE_SECONDS = 300;
 
     public static function verify(string $payload, ?string $header, string $secret, int $now): bool
     {

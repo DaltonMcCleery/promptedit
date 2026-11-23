@@ -1,7 +1,7 @@
 <?php
 
-use App\Pixelforge\PriceSheet;
-use App\Pixelforge\WebhookSignature;
+use App\Services\Pixelforge\PriceSheet;
+use App\Services\Pixelforge\WebhookSignature;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Pixelforge;
+namespace App\Enums;
 
 /**
  * What a POST /v1/generations response means for the generation.

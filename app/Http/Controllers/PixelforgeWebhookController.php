@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Generations\GenerationStatusUpdater;
+use App\Enums\UpdateSource;
+use App\Enums\WebhookOutcome;
 use App\Models\Generation;
 use App\Models\WebhookEvent;
-use App\Pixelforge\WebhookSignature;
+use App\Services\GenerationStatusUpdater;
+use App\Services\Pixelforge\WebhookSignature;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -33,16 +35,17 @@ class PixelforgeWebhookController extends Controller
             return response()->json(['error' => 'Not a Pixelforge event.'], 400);
         }
 
-        $outcome = DB::transaction(fn (): string => $this->record($event, $updater));
+        $outcome = DB::transaction(fn (): WebhookOutcome => $this->record($event, $updater));
 
-        return $outcome === 'applied' ? response()->noContent() : response()->json(['status' => $outcome]);
+        return $outcome === WebhookOutcome::Applied
+            ? response()->noContent()
+            : response()->json(['status' => $outcome->value]);
     }
 
     /**
      * @param  array<string, mixed>  $event
-     * @return string applied, duplicate, ping or unknown_generation
      */
-    private function record(array $event, GenerationStatusUpdater $updater): string
+    private function record(array $event, GenerationStatusUpdater $updater): WebhookOutcome
     {
         $inserted = WebhookEvent::query()->insertOrIgnore([
             'event_id' => $event['id'],
@@ -52,11 +55,11 @@ class PixelforgeWebhookController extends Controller
         ]);
 
         if ($inserted === 0) {
-            return 'duplicate';
+            return WebhookOutcome::Duplicate;
         }
 
         if ($event['type'] === 'ping') {
-            return 'ping';
+            return WebhookOutcome::Ping;
         }
 
         $object = $event['data']['object'] ?? null;
@@ -69,14 +72,14 @@ class PixelforgeWebhookController extends Controller
                 'pixelforge_id' => is_array($object) ? ($object['id'] ?? null) : null,
             ]);
 
-            return 'unknown_generation';
+            return WebhookOutcome::UnknownGeneration;
         }
 
-        $updater->apply($generation, $object, 'webhook');
+        $updater->apply($generation, $object, UpdateSource::Webhook);
 
         WebhookEvent::query()->where('event_id', $event['id'])->update(['generation_id' => $generation->id]);
 
-        return 'applied';
+        return WebhookOutcome::Applied;
     }
 
     /**

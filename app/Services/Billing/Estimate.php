@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Billing;
+namespace App\Services\Billing;
 
 /**
  * The range a generation can cost the user, before it runs.

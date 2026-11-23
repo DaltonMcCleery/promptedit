@@ -1,12 +1,15 @@
 <?php
 
-namespace App\Generations;
+namespace App\Actions;
 
-use App\Billing\CostCalculator;
+use App\Enums\GenerationStatus;
+use App\Enums\Quality;
+use App\Enums\Size;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
 use App\Models\User;
-use App\Pixelforge\PricingRepository;
+use App\Services\Billing\CostCalculator;
+use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;

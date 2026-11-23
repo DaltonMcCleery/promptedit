@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Pixelforge;
+namespace App\Services\Pixelforge;
 
+use App\Enums\CreateOutcome;
+use App\Enums\FailureCode;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -20,7 +22,7 @@ class PixelforgeClient
     /**
      * The only body keys Pixelforge accepts; anything else is a 422.
      */
-    private const CREATE_PARAMETERS = ['prompt', 'size', 'quality', 'reference_images'];
+    private const array CREATE_PARAMETERS = ['prompt', 'size', 'quality', 'reference_images'];
 
     /**
      * Ask Pixelforge to create a generation and classify the answer.
@@ -109,8 +111,8 @@ class PixelforgeClient
 
         return match (true) {
             $response->status() === 503 => CreateOutcome::Retryable,
-            $response->status() === 429 && $code === 'concurrency_limit_exceeded' => CreateOutcome::NoSlot,
-            $response->status() === 429 && $code === 'daily_limit_exceeded' => CreateOutcome::Final,
+            $response->status() === 429 && $code === FailureCode::ConcurrencyLimitExceeded->value => CreateOutcome::NoSlot,
+            $response->status() === 429 && $code === FailureCode::DailyLimitExceeded->value => CreateOutcome::Final,
             $response->status() === 429 => CreateOutcome::Retryable,
             $response->serverError() => CreateOutcome::Unknown,
             default => CreateOutcome::Final,

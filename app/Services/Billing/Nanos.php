@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Billing;
+namespace App\Services\Billing;
 
 use InvalidArgumentException;
 
@@ -11,9 +11,9 @@ use InvalidArgumentException;
  */
 final class Nanos
 {
-    public const PER_DOLLAR = 1_000_000_000;
+    public const int PER_DOLLAR = 1_000_000_000;
 
-    private const DECIMALS = 9;
+    private const int DECIMALS = 9;
 
     /**
      * Parse a non-negative decimal string such as "0.373875000" or a rate

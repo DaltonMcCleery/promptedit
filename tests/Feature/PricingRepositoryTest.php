@@ -1,7 +1,7 @@
 <?php
 
-use App\Pixelforge\PriceSheet;
-use App\Pixelforge\PricingRepository;
+use App\Services\Pixelforge\PriceSheet;
+use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Support\Facades\Http;
 
 const PRICING_URL = 'https://pixelforge.promptedit.dev/v1/pricing';

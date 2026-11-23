@@ -2,14 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Billing\CostCalculator;
-use App\Generations\GenerationStatus;
-use App\Generations\Quality;
-use App\Generations\Size;
+use App\Enums\FailureCode;
+use App\Enums\GenerationStatus;
+use App\Enums\Quality;
+use App\Enums\Size;
 use App\Models\Generation;
 use App\Models\User;
-use App\Pixelforge\PriceSheet;
-use App\Pixelforge\PricingRepository;
+use App\Services\Billing\CostCalculator;
+use App\Services\Pixelforge\PriceSheet;
+use App\Services\Pixelforge\PricingRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -32,20 +33,22 @@ use RuntimeException;
  */
 class DemoSeeder extends Seeder
 {
-    public const EMAIL_DOMAIN = 'demo.promptedit.test';
+    public const string EMAIL_DOMAIN = 'demo.promptedit.test';
 
-    public const PASSWORD = 'demo-password';
+    public const string PASSWORD = 'demo-password';
 
     /** Days back from yesterday that get history. */
-    private const DAYS = 29;
+    private const int DAYS = 29;
 
-    private const USERS = [
+    /** @var list<array{name: string, email: string, per_day: array{int, int}}> */
+    private const array USERS = [
         ['name' => 'Ava Chen', 'email' => 'ava', 'per_day' => [0, 4]],
         ['name' => 'Marcus Webb', 'email' => 'marcus', 'per_day' => [0, 3]],
         ['name' => 'Priya Patel', 'email' => 'priya', 'per_day' => [0, 2]],
     ];
 
-    private const PROMPTS = [
+    /** @var list<string> */
+    private const array PROMPTS = [
         'A lighthouse on a cliff at dawn, oil painting',
         'A red bicycle leaning on a brick wall in the rain',
         'Isometric city block at night, neon signs, light fog',
@@ -61,9 +64,9 @@ class DemoSeeder extends Seeder
     ];
 
     /** Pixelforge's two failure codes after acceptance, and two rejections at submission. */
-    private const FAILURES_AFTER_ACCEPTANCE = ['generation_failed', 'internal_error'];
+    private const array FAILURES_AFTER_ACCEPTANCE = [FailureCode::GenerationFailed, FailureCode::InternalError];
 
-    private const FAILURES_AT_SUBMISSION = ['overloaded', 'content_policy_violation'];
+    private const array FAILURES_AT_SUBMISSION = [FailureCode::Overloaded, FailureCode::ContentPolicyViolation];
 
     private Randomizer $random;
 
@@ -185,8 +188,8 @@ class DemoSeeder extends Seeder
 
         $this->accepted($generation, $sheet, $createdAt, $createdAt->addSeconds($this->random->getInt(8, 30)))->forceFill([
             'status' => GenerationStatus::Failed,
-            'failure_code' => $code,
-            'failure_message' => $code === 'internal_error'
+            'failure_code' => $code->value,
+            'failure_message' => $code === FailureCode::InternalError
                 ? 'Something went wrong on our side while generating. You were not charged; please retry.'
                 : 'The model could not produce an image for this prompt.',
             'provider_cost_nanos' => 0,
@@ -201,8 +204,8 @@ class DemoSeeder extends Seeder
         $generation->forceFill([
             'status' => GenerationStatus::Failed,
             'status_changed_at' => $createdAt,
-            'submit_attempts' => $code === 'overloaded' ? 4 : 0,
-            'failure_code' => $code,
+            'submit_attempts' => $code === FailureCode::Overloaded ? 4 : 0,
+            'failure_code' => $code->value,
             'provider_cost_nanos' => 0,
             'charge_nanos' => 0,
             'completed_at' => $createdAt,

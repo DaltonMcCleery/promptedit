@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Pixelforge;
+namespace App\Services\Pixelforge;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
@@ -11,11 +11,11 @@ use Illuminate\Support\Facades\Cache;
  */
 class PricingRepository
 {
-    public const CACHE_KEY = 'pixelforge.pricing';
+    public const string CACHE_KEY = 'pixelforge.pricing';
 
-    public const LAST_KNOWN_KEY = 'pixelforge.pricing.last';
+    public const string LAST_KNOWN_KEY = 'pixelforge.pricing.last';
 
-    private const CACHE_SECONDS = 600;
+    private const int CACHE_SECONDS = 600;
 
     public function __construct(private PixelforgeClient $client) {}
 

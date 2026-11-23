@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Billing;
+namespace App\Services\Billing;
 
-use App\Generations\Quality;
-use App\Generations\Size;
-use App\Pixelforge\PriceSheet;
+use App\Enums\Quality;
+use App\Enums\Size;
+use App\Enums\TokenType;
+use App\Services\Pixelforge\PriceSheet;
 
 /**
  * Every price calculation in the app. All amounts are integer nanodollars.
@@ -14,9 +15,9 @@ use App\Pixelforge\PriceSheet;
  */
 final class CostCalculator
 {
-    private const TOKENS_PER_RATE_UNIT = 1_000_000;
+    private const int TOKENS_PER_RATE_UNIT = 1_000_000;
 
-    private const BASIS_POINTS = 10_000;
+    private const int BASIS_POINTS = 10_000;
 
     /**
      * What Pixelforge charges for a finished generation.
@@ -28,8 +29,8 @@ final class CostCalculator
     {
         $tokens = [];
 
-        foreach (PriceSheet::TOKEN_TYPES as $type) {
-            $tokens[$type] = (int) ($usage[$type] ?? 0);
+        foreach (TokenType::cases() as $type) {
+            $tokens[$type->value] = (int) ($usage[$type->value] ?? 0);
         }
 
         return self::costOf($rates, $tokens);
@@ -58,28 +59,28 @@ final class CostCalculator
         $outputTokens = $sheet->outputTokensFor($quality, $size);
 
         $min = [
-            'input_text_tokens' => intdiv($baseTextTokens * (self::BASIS_POINTS - $variance), self::BASIS_POINTS),
-            'input_image_tokens' => $imageTokens,
-            'output_tokens' => $outputTokens,
-            'reasoning_tokens' => $reasoning['min'],
+            TokenType::InputText->value => intdiv($baseTextTokens * (self::BASIS_POINTS - $variance), self::BASIS_POINTS),
+            TokenType::InputImage->value => $imageTokens,
+            TokenType::Output->value => $outputTokens,
+            TokenType::Reasoning->value => $reasoning['min'],
         ];
 
         $max = [
-            'input_text_tokens' => self::ceilDiv($baseTextTokens * (self::BASIS_POINTS + $variance), self::BASIS_POINTS),
-            'input_image_tokens' => $imageTokens,
-            'output_tokens' => $outputTokens,
-            'reasoning_tokens' => $reasoning['max'],
+            TokenType::InputText->value => self::ceilDiv($baseTextTokens * (self::BASIS_POINTS + $variance), self::BASIS_POINTS),
+            TokenType::InputImage->value => $imageTokens,
+            TokenType::Output->value => $outputTokens,
+            TokenType::Reasoning->value => $reasoning['max'],
         ];
 
         $lines = [];
 
-        foreach (PriceSheet::TOKEN_TYPES as $type) {
+        foreach (TokenType::cases() as $type) {
             $lines[] = [
-                'type' => $type,
-                'min_tokens' => $min[$type],
-                'max_tokens' => $max[$type],
-                'min_nanos' => self::costOf($sheet->rates, [$type => $min[$type]]),
-                'max_nanos' => self::costOf($sheet->rates, [$type => $max[$type]]),
+                'type' => $type->value,
+                'min_tokens' => $min[$type->value],
+                'max_tokens' => $max[$type->value],
+                'min_nanos' => self::costOf($sheet->rates, [$type->value => $min[$type->value]]),
+                'max_nanos' => self::costOf($sheet->rates, [$type->value => $max[$type->value]]),
             ];
         }
 

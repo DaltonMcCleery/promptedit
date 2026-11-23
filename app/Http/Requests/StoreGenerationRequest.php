@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Generations\Quality;
-use App\Generations\Size;
+use App\Enums\Quality;
+use App\Enums\Size;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;

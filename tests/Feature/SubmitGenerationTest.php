@@ -1,11 +1,11 @@
 <?php
 
-use App\Generations\GenerationStatus;
-use App\Generations\GenerationStatusUpdater;
-use App\Generations\PendingReason;
+use App\Enums\GenerationStatus;
+use App\Enums\PendingReason;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
-use App\Pixelforge\PixelforgeClient;
+use App\Services\GenerationStatusUpdater;
+use App\Services\Pixelforge\PixelforgeClient;
 use Illuminate\Bus\UniqueLock;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;

@@ -1,6 +1,6 @@
 <?php
 
-use App\Generations\GenerationStatus;
+use App\Enums\GenerationStatus;
 use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
 use Illuminate\Http\Client\Request;

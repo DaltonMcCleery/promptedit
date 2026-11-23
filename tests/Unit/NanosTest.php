@@ -1,6 +1,6 @@
 <?php
 
-use App\Billing\Nanos;
+use App\Services\Billing\Nanos;
 
 it('parses Pixelforge amounts into nanodollars', function (string $decimal, int $nanos) {
     expect(Nanos::fromDecimal($decimal))->toBe($nanos);

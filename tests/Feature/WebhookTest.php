@@ -1,10 +1,10 @@
 <?php
 
-use App\Generations\GenerationStatus;
-use App\Generations\GenerationStatusUpdater;
+use App\Enums\GenerationStatus;
 use App\Models\Generation;
 use App\Models\WebhookEvent;
-use App\Pixelforge\WebhookSignature;
+use App\Services\GenerationStatusUpdater;
+use App\Services\Pixelforge\WebhookSignature;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
