@@ -6,6 +6,7 @@ use App\Generations\CreateGeneration;
 use App\Generations\GenerationStatus;
 use App\Http\Requests\StoreGenerationRequest;
 use App\Http\Resources\GenerationResource;
+use App\Pixelforge\PricingRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,6 +28,27 @@ class GenerationController extends Controller
             'totals' => fn () => [
                 'charge_nanos' => (int) $generations->clone()->where('status', GenerationStatus::Succeeded)->sum('charge_nanos'),
                 'succeeded_count' => $generations->clone()->where('status', GenerationStatus::Succeeded)->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * The generate form. Pricing goes to the browser as integers so the live
+     * estimate needs no server round trip; ?from={id} prefills "Try again".
+     */
+    public function create(Request $request, PricingRepository $pricing): Response
+    {
+        $from = $request->filled('from')
+            ? $request->user()->generations()->findOrFail($request->query('from'))
+            : null;
+
+        return Inertia::render('Generations/Create', [
+            'pricing' => $pricing->current()?->toArray(),
+            'initial' => $from === null ? null : [
+                'prompt' => $from->prompt,
+                'size' => $from->size->value,
+                'quality' => $from->quality->value,
+                'reference_images' => $from->reference_images,
             ],
         ]);
     }
