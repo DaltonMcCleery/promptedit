@@ -57,6 +57,16 @@ Only admins can open it (others get 403). Make an existing user an admin with:
 php artisan app:make-admin you@example.com
 ```
 
+### Demo data (local only)
+
+To see History and the report filled in, seed about a month of generations from three demo users (`ava`, `marcus` and `priya` `@demo.promptedit.test`, password `demo-password`):
+
+```bash
+php artisan db:seed --class=DemoSeeder
+```
+
+Every amount is calculated by the same `CostCalculator` as real generations, at Pixelforge's current rates, and running it again replaces the demo data. Pixelforge never ran these generations, so on the admin report their days show a difference from `GET /v1/usage`, which is the reconciliation check doing its job. For that reason the seeder only touches days before today, so today's real generations still match, and it refuses to run in production.
+
 ## Local setup
 
 Requirements: PHP 8.4, Composer, Node 22, and Postgres (the app and its tests use Postgres, because the guarantees above rely on its row locks and unique constraints). These steps assume [Laravel Herd](https://herd.laravel.com), which serves the app at `https://promptedit.test`.
