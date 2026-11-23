@@ -1,5 +1,6 @@
 <?php
 
+use App\Pixelforge\PriceSheet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +45,17 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * The GET /v1/pricing response from Pixelforge's docs.
+ *
+ * @return array<string, mixed>
+ */
+function pixelforgePricing(): array
 {
-    // ..
+    return json_decode(file_get_contents(__DIR__.'/Fixtures/pricing.json'), true);
+}
+
+function docsPriceSheet(): PriceSheet
+{
+    return PriceSheet::fromPricingResponse(pixelforgePricing());
 }
