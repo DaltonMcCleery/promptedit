@@ -1,19 +1,38 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
 
-const name = usePage().props.name;
+/**
+ * The PromptEdit wordmark. Text only, so it follows the theme's text colour.
+ * In the collapsed sidebar it shrinks to a single "P".
+ */
+const props = withDefaults(
+    defineProps<{
+        size?: 'sm' | 'lg';
+        class?: HTMLAttributes['class'];
+    }>(),
+    { size: 'sm' },
+);
 </script>
 
 <template>
-    <div
-        class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
+    <span
+        :class="
+            cn(
+                'inline-flex items-baseline font-semibold tracking-tight whitespace-nowrap text-foreground',
+                props.size === 'lg' ? 'text-3xl' : 'text-lg',
+                props.class,
+            )
+        "
     >
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
-    </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold">{{
-            name
-        }}</span>
-    </div>
+        <span class="group-data-[collapsible=icon]:hidden" aria-hidden="true">
+            Prompt<span class="text-muted-foreground">Edit</span>
+        </span>
+        <span
+            class="hidden group-data-[collapsible=icon]:inline"
+            aria-hidden="true"
+            >P</span
+        >
+        <span class="sr-only">PromptEdit</span>
+    </span>
 </template>

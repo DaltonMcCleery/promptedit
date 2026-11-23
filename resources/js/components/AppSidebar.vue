@@ -39,7 +39,7 @@ const mainNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="create()">
+                        <Link :href="create()" class="px-2">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
