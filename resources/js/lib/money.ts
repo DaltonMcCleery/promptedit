@@ -33,3 +33,19 @@ export function exactUsd(nanos: number | bigint): string {
 
     return `${sign}$${whole}.${fraction}`;
 }
+
+/**
+ * For display: "$0.00" for nothing, "< $0.0001" for an amount that would
+ * round to zero, otherwise 4 decimals. The exact amount belongs in a tooltip.
+ */
+export function displayUsd(nanos: number | bigint): string {
+    const value = BigInt(nanos);
+
+    if (value === 0n) {
+        return '$0.00';
+    }
+
+    const formatted = formatUsd(value, 4);
+
+    return formatted === '$0.0000' ? '< $0.0001' : formatted;
+}

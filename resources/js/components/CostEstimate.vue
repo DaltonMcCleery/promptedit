@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Money from '@/components/Money.vue';
-import type { Estimate, TokenType } from '@/lib/pricing';
+import { displayUsd } from '@/lib/money';
+import type { Estimate, EstimateLine, TokenType } from '@/lib/pricing';
 
 defineProps<{
     estimate: Estimate;
@@ -9,14 +10,19 @@ defineProps<{
 const labels: Record<TokenType, string> = {
     input_text_tokens: 'Prompt text',
     input_image_tokens: 'Reference images',
-    output_tokens: 'Image',
+    output_tokens: 'Image output',
     reasoning_tokens: 'Reasoning',
 };
 
-function tokenRange(min: number, max: number): string {
-    return min === max
-        ? `${min.toLocaleString()} tokens`
-        : `${min.toLocaleString()}–${max.toLocaleString()} tokens`;
+function tokenRange(line: EstimateLine): string {
+    return line.minTokens === line.maxTokens
+        ? `${line.maxTokens.toLocaleString()} tokens`
+        : `${line.minTokens.toLocaleString()}–${line.maxTokens.toLocaleString()} tokens`;
+}
+
+/** A range that rounds to the same displayed amount is shown once. */
+function showsOneAmount(min: bigint, max: bigint): boolean {
+    return displayUsd(min) === displayUsd(max);
 }
 </script>
 
@@ -49,14 +55,24 @@ function tokenRange(min: number, max: number): string {
                 >
                     <th scope="row" class="py-1.5 text-left font-normal">
                         {{ labels[line.type] }}
-                        <span class="block text-xs text-muted-foreground">{{
-                            tokenRange(line.minTokens, line.maxTokens)
-                        }}</span>
+                        <span
+                            v-if="line.maxTokens > 0"
+                            class="block text-xs text-muted-foreground"
+                            >{{ tokenRange(line) }}</span
+                        >
                     </th>
                     <td class="py-1.5 text-right">
-                        <template v-if="line.minNanos === line.maxNanos">
-                            <Money :nanos="line.maxNanos" />
-                        </template>
+                        <span
+                            v-if="line.maxTokens === 0"
+                            class="text-muted-foreground"
+                            >None</span
+                        >
+                        <Money
+                            v-else-if="
+                                showsOneAmount(line.minNanos, line.maxNanos)
+                            "
+                            :nanos="line.maxNanos"
+                        />
                         <template v-else>
                             <Money :nanos="line.minNanos" /> –
                             <Money :nanos="line.maxNanos" />
@@ -94,10 +110,9 @@ function tokenRange(min: number, max: number): string {
         </table>
 
         <p class="mt-4 text-xs text-muted-foreground">
-            The prompt's exact token count and the reasoning the model does are
-            only known once the image is ready. You'll pay the actual cost then,
-            and it won't be more than <Money :nanos="estimate.maxNanos" />. If
-            the generation fails, it's free.
+            Text and reasoning tokens are only known once the image is ready.
+            You'll pay the actual cost, never more than
+            <Money :nanos="estimate.maxNanos" />. Failed generations are free.
         </p>
     </section>
 </template>
