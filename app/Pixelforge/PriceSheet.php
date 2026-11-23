@@ -66,6 +66,24 @@ final readonly class PriceSheet
         return $parsed;
     }
 
+    /**
+     * The same token tables at different rates, e.g. a generation's frozen rates.
+     *
+     * @param  array<string, string>  $rateStrings
+     */
+    public function withRates(array $rateStrings): self
+    {
+        return new self(
+            rateStrings: $rateStrings,
+            rates: self::parseRates($rateStrings),
+            charactersPerTextToken: $this->charactersPerTextToken,
+            textTokenVarianceBasisPoints: $this->textTokenVarianceBasisPoints,
+            tokensPerReferenceImage: $this->tokensPerReferenceImage,
+            outputTokens: $this->outputTokens,
+            reasoningTokens: $this->reasoningTokens,
+        );
+    }
+
     public function outputTokensFor(Quality $quality, Size $size): int
     {
         return (int) $this->outputTokens[$quality->value][$size->value];
