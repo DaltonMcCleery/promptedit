@@ -39,7 +39,7 @@ class GenerationController extends Controller
     public function create(Request $request, PricingRepository $pricing): Response
     {
         $from = $request->filled('from')
-            ? $request->user()->generations()->findOrFail($request->query('from'))
+            ? $request->user()->generations()->findOrFail($request->string('from')->toString())
             : null;
 
         return Inertia::render('Generations/Create', [
@@ -58,7 +58,7 @@ class GenerationController extends Controller
      */
     public function store(StoreGenerationRequest $request, CreateGeneration $createGeneration): RedirectResponse
     {
-        $createGeneration->handle($request->user(), $request->validated());
+        $createGeneration->handle($request->user(), $request->generationInput());
 
         return to_route('generations.index');
     }

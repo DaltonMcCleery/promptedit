@@ -47,6 +47,21 @@ class StoreGenerationRequest extends FormRequest
     }
 
     /**
+     * The validated input, typed for CreateGeneration.
+     *
+     * @return array{prompt: string, size: string, quality: string, reference_images: list<string>}
+     */
+    public function generationInput(): array
+    {
+        return [
+            'prompt' => $this->string('prompt')->toString(),
+            'size' => $this->string('size')->toString(),
+            'quality' => $this->string('quality')->toString(),
+            'reference_images' => array_values($this->validated('reference_images') ?? []),
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
     public function messages(): array
