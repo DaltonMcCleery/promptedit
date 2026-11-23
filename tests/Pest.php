@@ -1,9 +1,11 @@
 <?php
 
 use App\Pixelforge\PriceSheet;
+use App\Pixelforge\WebhookSignature;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /*
@@ -123,4 +125,39 @@ function pixelforgeSucceededGeneration(array $overrides = []): array
 function pixelforgeError(int $status, string $code, array $headers = []): PromiseInterface
 {
     return Http::response(['error' => ['type' => 'error', 'code' => $code, 'message' => "Pixelforge said {$code}."]], $status, $headers);
+}
+
+/**
+ * A Pixelforge webhook event wrapping a generation object.
+ *
+ * @param  array<string, mixed>  $object
+ * @return array<string, mixed>
+ */
+function pixelforgeEvent(string $type, array $object, string $id = 'evt_01JC2Z9B7K2M4P6R8T0V3X5Z7A'): array
+{
+    return [
+        'id' => $id,
+        'object' => 'event',
+        'type' => $type,
+        'created_at' => '2026-11-04T14:03:29Z',
+        'data' => ['object' => $object],
+    ];
+}
+
+/**
+ * POST an event to the webhook endpoint, signed like Pixelforge signs it.
+ *
+ * @param  array<string, mixed>  $event
+ */
+function sendPixelforgeWebhook(array $event, ?string $secret = null, ?int $timestamp = null): TestResponse
+{
+    $payload = json_encode($event);
+    $signature = WebhookSignature::sign($payload, $secret ?? config('services.pixelforge.webhook_secret'), $timestamp ?? time());
+
+    return test()->call('POST', route('webhooks.pixelforge'), server: [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_PIXELFORGE_SIGNATURE' => $signature,
+        'HTTP_PIXELFORGE_EVENT_ID' => $event['id'],
+        'HTTP_PIXELFORGE_EVENT_TYPE' => $event['type'],
+    ], content: $payload);
 }
