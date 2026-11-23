@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { CircleX, ImageOff, LoaderCircle, RotateCcw } from '@lucide/vue';
+import { ImageOff, LoaderCircle, RotateCcw } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { create } from '@/actions/App/Http/Controllers/GenerationController';
 import Money from '@/components/Money.vue';
@@ -16,12 +16,6 @@ const sizeLabels: Record<Generation['size'], string> = {
     '1024x1024': 'Square',
     '1536x1024': 'Landscape',
     '1024x1536': 'Portrait',
-};
-
-const aspect: Record<Generation['size'], string> = {
-    '1024x1024': 'aspect-square',
-    '1536x1024': 'aspect-[3/2]',
-    '1024x1536': 'aspect-[2/3]',
 };
 
 const imageFailed = ref(false);
@@ -71,14 +65,14 @@ const createdAt = computed(() =>
         :data-test="`generation-${generation.id}`"
     >
         <div
-            class="flex w-full items-center justify-center bg-muted text-sm text-muted-foreground"
-            :class="aspect[generation.size]"
+            v-if="generation.status !== 'failed'"
+            class="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-muted text-sm text-muted-foreground"
         >
             <img
                 v-if="showImage"
                 :src="generation.image_url!"
                 :alt="generation.prompt"
-                class="h-full w-full object-cover"
+                class="absolute inset-0 h-full w-full object-contain"
                 loading="lazy"
                 @error="imageFailed = true"
             />
@@ -88,13 +82,6 @@ const createdAt = computed(() =>
             >
                 <ImageOff class="size-6" aria-hidden="true" />
                 The image link expired.
-            </div>
-            <div
-                v-else-if="generation.status === 'failed'"
-                class="flex flex-col items-center gap-2 p-4 text-center"
-            >
-                <CircleX class="size-6" aria-hidden="true" />
-                No image
             </div>
             <div
                 v-else
@@ -126,7 +113,7 @@ const createdAt = computed(() =>
             </p>
             <p class="text-xs text-muted-foreground">{{ details }}</p>
 
-            <dl class="grid grid-cols-2 gap-x-2 gap-y-1 text-sm">
+            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
                 <dt class="text-muted-foreground">Estimated</dt>
                 <dd class="text-right">
                     <Money :nanos="generation.estimate_min_nanos" /> –
@@ -142,7 +129,10 @@ const createdAt = computed(() =>
                         :nanos="generation.charge_nanos"
                     />
                     <span v-else-if="generation.status === 'failed'"
-                        >$0.00, not charged</span
+                        >$0.00
+                        <span class="font-normal text-muted-foreground"
+                            >(failed, not charged)</span
+                        ></span
                     >
                     <span v-else class="font-normal text-muted-foreground"
                         >When the image is ready</span
@@ -152,7 +142,7 @@ const createdAt = computed(() =>
 
             <div
                 v-if="generation.status === 'failed'"
-                class="mt-auto flex flex-col gap-3"
+                class="flex flex-col gap-3"
             >
                 <p
                     class="text-sm text-red-700 dark:text-red-400"

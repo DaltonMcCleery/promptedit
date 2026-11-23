@@ -81,7 +81,10 @@ watch(hasActive, (active) => (active ? start() : stop()), {
             >.
         </div>
 
-        <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div
+            v-else
+            class="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
             <GenerationCard
                 v-for="generation in generations.data"
                 :key="generation.id"
