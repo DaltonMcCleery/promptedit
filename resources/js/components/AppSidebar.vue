@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { History, Sparkles } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { ChartColumn, History, Sparkles } from '@lucide/vue';
+import { computed } from 'vue';
+import ReportController from '@/actions/App/Http/Controllers/Admin/ReportController';
 import {
     create,
     index,
@@ -31,6 +33,20 @@ const mainNavItems: NavItem[] = [
         icon: History,
     },
 ];
+
+const page = usePage();
+
+const adminNavItems = computed<NavItem[]>(() =>
+    page.props.auth.user?.is_admin
+        ? [
+              {
+                  title: 'Admin report',
+                  href: ReportController(),
+                  icon: ChartColumn,
+              },
+          ]
+        : [],
+);
 </script>
 
 <template>
@@ -48,7 +64,7 @@ const mainNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="[...mainNavItems, ...adminNavItems]" />
         </SidebarContent>
 
         <SidebarFooter>

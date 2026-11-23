@@ -4,13 +4,15 @@ import { displayUsd, exactUsd } from '@/lib/money';
 
 const props = defineProps<{
     nanos: number | bigint;
+    /** Show all 9 decimals, for reconciling with Pixelforge. */
+    exact?: boolean;
 }>();
 
-const exact = computed(() => exactUsd(props.nanos));
+const exactAmount = computed(() => exactUsd(props.nanos));
 </script>
 
 <template>
-    <span class="tabular-nums" :title="`Exactly ${exact}`">{{
-        displayUsd(nanos)
+    <span class="tabular-nums" :title="`Exactly ${exactAmount}`">{{
+        exact ? exactAmount : displayUsd(nanos)
     }}</span>
 </template>

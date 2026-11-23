@@ -43,8 +43,19 @@ The docs' worked example is a test: high quality, 1536x1024, a 400-character pro
 | Webhooks                  | `app/Http/Controllers/PixelforgeWebhookController.php`, `app/Pixelforge/WebhookSignature.php` (route in `bootstrap/app.php`) |
 | Polling fallback          | `app/Console/Commands/ReconcileGenerations.php` (scheduled in `routes/console.php`)                                          |
 | Failure wording           | `app/Generations/FailureReason.php`                                                                                          |
+| Admin report              | `app/Admin/UsageReport.php`, `app/Http/Controllers/Admin/ReportController.php`, `resources/js/pages/Admin/Report.vue`        |
 | Pages                     | `resources/js/pages/Generations/Create.vue`, `resources/js/pages/Generations/Index.vue`                                      |
 | Browser price math        | `resources/js/lib/pricing.ts`, `resources/js/lib/money.ts`                                                                   |
+
+## Admin report
+
+`/admin/report` shows, for the last 30 days (the same range `GET /v1/usage` returns by default), credit spend (what users were charged), provider cost (what Pixelforge charged us) and profit, in one table per UTC day and one per user. Generations count on the UTC day they completed, which is how Pixelforge bills, using Pixelforge's own `completed_at`. Each day's provider cost is shown next to the `cost_usd` that `GET /v1/usage` reports for this environment's API key, compared as integer nanodollars: it says "Matches" or shows the exact difference. The usage response is cached for 2 minutes; if Pixelforge can't be reached, the report still shows the app's own numbers.
+
+Only admins can open it (others get 403). Make an existing user an admin with:
+
+```bash
+php artisan app:make-admin you@example.com
+```
 
 ## Local setup
 
