@@ -95,7 +95,7 @@ it('accepts a generation that is already finished when it is first reported', fu
     $result = updater()->apply($generation, pixelforgeSucceededGeneration(), 'create');
 
     expect($result->status)->toBe(GenerationStatus::Succeeded)
-        ->and($result->rates)->toBe(pixelforgePricing()['rates'])
+        ->and($result->rates)->toEqual(pixelforgePricing()['rates'])
         ->and($result->charge_nanos)->toBe(381_887_500);
 });
 
@@ -105,7 +105,7 @@ it('records the Pixelforge id and rates from whichever update arrives first', fu
     $result = updater()->apply($generation, pixelforgeGeneration(['status' => 'processing']), 'webhook');
 
     expect($result->pixelforge_id)->toBe('gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K')
-        ->and($result->rates)->toBe(pixelforgePricing()['rates']);
+        ->and($result->rates)->toEqual(pixelforgePricing()['rates']);
 });
 
 it('keeps the estimate unchanged when the frozen rates match', function () {

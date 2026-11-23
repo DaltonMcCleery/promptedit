@@ -30,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property GenerationStatus $status
  * @property PendingReason|null $pending_reason
  * @property int $submit_attempts
+ * @property int $unreachable_attempts
  * @property Carbon|null $waiting_since
  * @property Carbon|null $next_attempt_at
  * @property int $estimate_min_nanos
@@ -91,6 +92,7 @@ class Generation extends Model
             'status' => GenerationStatus::class,
             'pending_reason' => PendingReason::class,
             'submit_attempts' => 'integer',
+            'unreachable_attempts' => 'integer',
             'waiting_since' => 'datetime',
             'next_attempt_at' => 'datetime',
             'estimate_min_nanos' => 'integer',

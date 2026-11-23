@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('status');
             $table->string('pending_reason')->nullable();
             $table->unsignedSmallInteger('submit_attempts')->default(0);
+            $table->unsignedSmallInteger('unreachable_attempts')->default(0);
             $table->timestamp('waiting_since')->nullable();
             $table->timestamp('next_attempt_at')->nullable();
 
