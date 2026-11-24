@@ -10,6 +10,7 @@ import {
 } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import { Button } from '@/components/ui/button';
+import { author } from '@/lib/author';
 import { login, register } from '@/routes';
 
 const features = [
@@ -29,15 +30,6 @@ const features = [
         body: 'Blocked prompts, overloads and failed images cost nothing. Each image is charged once, exactly, even when the provider repeats itself.',
     },
 ];
-
-const author = {
-    name: 'Dalton McCleery',
-    role: 'Senior Software Engineer',
-    site: 'https://daltonmccleery.com',
-    github: 'https://github.com/DaltonMcCleery',
-    x: 'https://twitter.com/DaltonMcCleery',
-    email: 'me@daltonmccleery.com',
-};
 </script>
 
 <template>
@@ -168,12 +160,25 @@ const author = {
                 >
                     <div class="max-w-xl">
                         <p class="text-sm text-muted-foreground">Built by</p>
-                        <h2 class="mt-1 text-2xl font-semibold tracking-tight">
-                            {{ author.name }}
-                        </h2>
-                        <p class="text-sm text-muted-foreground">
-                            {{ author.role }}
-                        </p>
+                        <div class="mt-2 flex items-center gap-4">
+                            <img
+                                :src="author.photo"
+                                :alt="`Photo of ${author.name}`"
+                                width="72"
+                                height="72"
+                                class="size-18 rounded-full object-cover ring-4 ring-background"
+                            />
+                            <div>
+                                <h2
+                                    class="text-2xl font-semibold tracking-tight"
+                                >
+                                    {{ author.name }}
+                                </h2>
+                                <p class="text-sm text-muted-foreground">
+                                    {{ author.role }}
+                                </p>
+                            </div>
+                        </div>
                         <p class="mt-4 text-muted-foreground">
                             I build Laravel applications with a focus on solid
                             backends: integrations, money, and the edge cases in

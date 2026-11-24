@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import BuiltByCard from '@/components/BuiltByCard.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -104,4 +105,12 @@ defineProps<{
             <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
         </div>
     </Form>
+
+    <div class="flex flex-col gap-3 border-t border-sidebar-border/70 pt-6">
+        <p class="text-center text-xs text-muted-foreground">
+            See the price before you submit, pay exactly what each image cost,
+            and nothing if it fails.
+        </p>
+        <BuiltByCard />
+    </div>
 </template>
