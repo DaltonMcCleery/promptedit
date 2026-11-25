@@ -4,10 +4,13 @@ namespace App\Providers;
 
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\DevCommands;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -27,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureRateLimiting();
 
         Gate::define('viewAdminReport', fn (User $user): bool => $user->is_admin);
 
@@ -56,5 +60,17 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * A burst guard on POST /generations; the daily caps live in GenerationLimits.
+     */
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('generations', fn (Request $request): Limit => Limit::perMinute(config()->integer('limits.submits_per_minute'))
+            ->by('generations:'.($request->user()?->getAuthIdentifier() ?? $request->ip()))
+            ->response(fn () => back()->withErrors([
+                'limit' => "You're submitting too quickly. Please wait a minute and try again.",
+            ])));
     }
 }

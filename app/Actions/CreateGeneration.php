@@ -9,6 +9,7 @@ use App\Jobs\SubmitGeneration;
 use App\Models\Generation;
 use App\Models\User;
 use App\Services\Billing\CostCalculator;
+use App\Services\GenerationLimits;
 use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,12 +23,15 @@ use Illuminate\Validation\ValidationException;
  */
 class CreateGeneration
 {
-    public function __construct(private PricingRepository $pricing) {}
+    public function __construct(
+        private PricingRepository $pricing,
+        private GenerationLimits $limits,
+    ) {}
 
     /**
      * @param  array{prompt: string, size: string, quality: string, reference_images?: list<string>|null}  $input
      *
-     * @throws ValidationException when Pixelforge's prices are unavailable.
+     * @throws ValidationException when Pixelforge's prices are unavailable or a limit would be broken.
      */
     public function handle(User $user, array $input): Generation
     {
@@ -41,6 +45,9 @@ class CreateGeneration
         $estimate = CostCalculator::estimate($sheet, $input['prompt'], $size, $quality, count($referenceImages));
 
         return DB::transaction(function () use ($user, $input, $size, $quality, $referenceImages, $estimate, $sheet): Generation {
+            // Locks until commit, so the limit check and the insert happen as one step.
+            $this->limits->ensureAllowed($user, $estimate->maxNanos);
+
             $generation = $user->generations()->create([
                 'idempotency_key' => (string) Str::uuid(),
                 'prompt' => $input['prompt'],
