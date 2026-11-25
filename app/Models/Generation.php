@@ -103,6 +103,17 @@ class Generation extends Model
     }
 
     /**
+     * Not finished yet: submitting, queued or processing.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function unfinished(Builder $query): void
+    {
+        $query->whereIn('status', [GenerationStatus::Submitting, GenerationStatus::Queued, GenerationStatus::Processing]);
+    }
+
+    /**
      * Finished with an image, so billed.
      *
      * @param  Builder<self>  $query

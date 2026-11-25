@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\CreateGeneration;
 use App\Http\Requests\StoreGenerationRequest;
 use App\Http\Resources\GenerationResource;
+use App\Services\GenerationLimits;
 use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ class GenerationController extends Controller
      * The generate form. Pricing goes to the browser as integers so the live
      * estimate needs no server round trip; ?from={id} prefills "Try again".
      */
-    public function create(Request $request, PricingRepository $pricing): Response
+    public function create(Request $request, PricingRepository $pricing, GenerationLimits $limits): Response
     {
         $from = $request->filled('from')
             ? $request->user()->generations()->findOrFail($request->string('from')->toString())
@@ -43,6 +44,7 @@ class GenerationController extends Controller
 
         return Inertia::render('Generations/Create', [
             'pricing' => $pricing->current()?->toArray(),
+            'limits' => $limits->forPage($request->user()),
             'initial' => $from === null ? null : [
                 'prompt' => $from->prompt,
                 'size' => $from->size->value,

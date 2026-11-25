@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property bool $is_admin
+ * @property Carbon|null $suspended_at
  * @property string|null $remember_token
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -47,6 +48,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Suspended users can't sign in or generate; see app:suspend-user.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -57,6 +66,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'suspended_at' => 'datetime',
         ];
     }
 }

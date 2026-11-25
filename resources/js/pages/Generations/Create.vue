@@ -21,9 +21,26 @@ type Initial = {
     reference_images: string[];
 };
 
+type UserUsage = {
+    unfinished: number;
+    unfinished_limit: number;
+    generations: number;
+    generations_limit: number;
+    spend_nanos: number;
+    spend_limit_nanos: number;
+};
+
+type Limits = {
+    /** Why generating is blocked right now, or null. */
+    blocked: string | null;
+    /** Today's usage; null for admins, who skip the per-user limits. */
+    user: UserUsage | null;
+};
+
 const props = defineProps<{
     pricing: PriceSheet | null;
     initial: Initial | null;
+    limits: Limits;
 }>();
 
 defineOptions({
@@ -74,9 +91,30 @@ const liveEstimate = computed(() =>
           ),
 );
 
+/** The server checks this too; showing it here saves a submit that would be refused. */
+const overSpendLimit = computed(() => {
+    const usage = props.limits.user;
+
+    return (
+        usage !== null &&
+        liveEstimate.value !== null &&
+        BigInt(usage.spend_nanos) + BigInt(liveEstimate.value.maxNanos) >
+            BigInt(usage.spend_limit_nanos)
+    );
+});
+
+const blockedMessage = computed(
+    () =>
+        props.limits.blocked ??
+        (overSpendLimit.value
+            ? "This would take you past today's spending limit. Try a lower quality or size, or wait until midnight UTC."
+            : null),
+);
+
 const canSubmit = computed(
     () =>
         props.pricing !== null &&
+        blockedMessage.value === null &&
         form.prompt.trim() !== '' &&
         !tooLong.value &&
         !form.processing,
@@ -91,6 +129,7 @@ const extraErrors = computed(
     () => form.errors as Record<string, string | undefined>,
 );
 const pricingError = computed(() => extraErrors.value.pricing);
+const limitError = computed(() => extraErrors.value.limit);
 const canAddReference = computed(
     () => form.reference_images.length < MAX_REFERENCE_IMAGES,
 );
@@ -291,11 +330,48 @@ function submit(): void {
                     would cost. Generating is paused until Pixelforge's prices
                     load again.
                 </div>
+
+                <div
+                    v-if="limits.user"
+                    class="mt-4 rounded-xl border border-sidebar-border/70 p-4 text-sm dark:border-sidebar-border"
+                    data-test="usage"
+                >
+                    <h2 class="mb-2 font-medium">Today's usage</h2>
+                    <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">
+                        <dt class="text-muted-foreground">Images</dt>
+                        <dd class="text-right tabular-nums">
+                            {{ limits.user.generations }} of
+                            {{ limits.user.generations_limit }}
+                        </dd>
+                        <dt class="text-muted-foreground">Spent</dt>
+                        <dd class="text-right tabular-nums">
+                            {{ formatUsd(limits.user.spend_nanos) }} of
+                            {{ formatUsd(limits.user.spend_limit_nanos) }}
+                        </dd>
+                        <dt class="text-muted-foreground">Running</dt>
+                        <dd class="text-right tabular-nums">
+                            {{ limits.user.unfinished }} of
+                            {{ limits.user.unfinished_limit }}
+                        </dd>
+                    </dl>
+                    <p class="mt-2 text-xs text-muted-foreground">
+                        Spent includes the most your running images could cost.
+                        Limits reset at midnight UTC.
+                    </p>
+                </div>
             </aside>
 
             <!-- Outside the form so phones show the estimate above it; form="" still submits the form. -->
             <div class="flex flex-col gap-2 lg:col-start-1 lg:row-start-2">
                 <InputError :message="pricingError" />
+                <p
+                    v-if="blockedMessage || limitError"
+                    role="alert"
+                    class="text-sm text-red-600 dark:text-red-500"
+                    data-test="limit-message"
+                >
+                    {{ limitError ?? blockedMessage }}
+                </p>
                 <div>
                     <Button
                         type="submit"

@@ -89,6 +89,21 @@ defineOptions({
                 <InputError :message="errors.password_confirmation" />
             </div>
 
+            <!-- Hidden from people and screen readers; a bot that fills it is refused. -->
+            <div
+                aria-hidden="true"
+                class="absolute -left-[9999px] h-px w-px overflow-hidden"
+            >
+                <label for="extra_details">Leave this field empty</label>
+                <input
+                    id="extra_details"
+                    type="text"
+                    name="extra_details"
+                    tabindex="-1"
+                    autocomplete="off"
+                />
+            </div>
+
             <Button
                 type="submit"
                 class="mt-2 w-full"

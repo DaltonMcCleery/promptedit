@@ -43,6 +43,7 @@ The docs' worked example is a test: high quality, 1536x1024, a 400-character pro
 | Webhooks                                                      | `app/Http/Controllers/PixelforgeWebhookController.php`, `app/Services/Pixelforge/WebhookSignature.php` (route in `bootstrap/app.php`) |
 | Polling fallback                                              | `app/Console/Commands/ReconcileGenerations.php` (scheduled in `routes/console.php`)                                                   |
 | Statuses, sizes, token types, failure codes and their wording | `app/Enums/`                                                                                                                          |
+| Abuse limits                                                  | `config/limits.php`, `app/Services/GenerationLimits.php`, `app/Enums/GenerationBlock.php`, `app/Actions/Fortify/CreateNewUser.php`    |
 | Admin report                                                  | `app/Services/UsageReport.php`, `app/Http/Controllers/Admin/ReportController.php`, `resources/js/pages/Admin/Report.vue`              |
 | Pages                                                         | `resources/js/pages/Generations/Create.vue`, `resources/js/pages/Generations/Index.vue`                                               |
 | Browser price math                                            | `resources/js/lib/pricing.ts`, `resources/js/lib/money.ts`                                                                            |
@@ -66,6 +67,31 @@ php artisan db:seed --class=DemoSeeder
 ```
 
 Every amount is calculated by the same `CostCalculator` as real generations, at Pixelforge's current rates, and running it again replaces the demo data. Pixelforge never ran these generations, so on the admin report their days show a difference from `GET /v1/usage`, which is the reconciliation check doing its job. For that reason the seeder only touches days before today, so today's real generations still match, and it refuses to run in production.
+
+## Abuse protection
+
+Anyone can sign up, so the app limits how much one person, or a bot with many accounts, can spend or write to the database. All limits are in `config/limits.php` and each can be changed with an environment variable. Days are UTC days.
+
+| Layer             | Limit                                                                             | Env variable                                                                      |
+| ----------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Sign-up           | 3 new accounts per IP an hour and 10 a day, plus a hidden field that bots fill in | `LIMIT_REGISTRATIONS_PER_HOUR`, `LIMIT_REGISTRATIONS_PER_DAY`                     |
+| Generate requests | 6 per user per minute                                                             | `LIMIT_SUBMITS_PER_MINUTE`                                                        |
+| Per user          | 2 unfinished generations at once, 25 a day, $2.00 a day                           | `LIMIT_USER_UNFINISHED`, `LIMIT_USER_DAILY_GENERATIONS`, `LIMIT_USER_DAILY_SPEND` |
+| Whole app         | 200 generations a day and $10.00 of Pixelforge cost a day                         | `LIMIT_APP_DAILY_GENERATIONS`, `LIMIT_APP_DAILY_SPEND`                            |
+| Kill switch       | `GENERATIONS_ENABLED=false` stops every new generation                            | `GENERATIONS_ENABLED`                                                             |
+
+- **Spend is counted before Pixelforge reports it.** A day's spend is what has been billed plus the maximum estimate of every generation still unfinished, so a burst of submissions can't get past a cap while they run. The user cap is in what the user pays; the app cap is in Pixelforge's cost. A new generation is refused if its maximum estimate would take either past its limit.
+- **The check and the insert are one step.** `CreateGeneration` takes a Postgres advisory lock for its transaction, so two requests sent at the same moment can't both pass a limit that only one of them fits under.
+- **Failed generations count toward the daily number**, since they still use Pixelforge's 500-a-day account limit, but not toward spend.
+- **Admins skip the per-user limits**, not the app-wide ones or the kill switch.
+- The Generate page shows each user today's images, spend and running count, and explains why the button is disabled when a limit is reached.
+
+To suspend an account (it is signed out on its next request and can't sign in; generations already running finish):
+
+```bash
+php artisan app:suspend-user spammer@example.com
+php artisan app:unsuspend-user spammer@example.com
+```
 
 ## Local setup
 

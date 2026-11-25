@@ -4,10 +4,13 @@ namespace App\Providers;
 
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\DevCommands;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -29,6 +32,13 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
 
         Gate::define('viewAdminReport', fn (User $user): bool => $user->is_admin);
+
+        // A burst guard on POST /generations; the daily caps live in GenerationLimits.
+        RateLimiter::for('generations', fn (Request $request): Limit => Limit::perMinute((int) config('limits.submits_per_minute'))
+            ->by('generations:'.($request->user()?->getAuthIdentifier() ?? $request->ip()))
+            ->response(fn () => back()->withErrors([
+                'limit' => "You're submitting too quickly. Please wait a minute and try again.",
+            ])));
 
         // `composer run dev` also runs the scheduler, for the generations:reconcile fallback.
         if ($this->app->runningInConsole()) {
