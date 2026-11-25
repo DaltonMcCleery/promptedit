@@ -30,15 +30,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureRateLimiting();
 
         Gate::define('viewAdminReport', fn (User $user): bool => $user->is_admin);
-
-        // A burst guard on POST /generations; the daily caps live in GenerationLimits.
-        RateLimiter::for('generations', fn (Request $request): Limit => Limit::perMinute((int) config('limits.submits_per_minute'))
-            ->by('generations:'.($request->user()?->getAuthIdentifier() ?? $request->ip()))
-            ->response(fn () => back()->withErrors([
-                'limit' => "You're submitting too quickly. Please wait a minute and try again.",
-            ])));
 
         // `composer run dev` also runs the scheduler, for the generations:reconcile fallback.
         if ($this->app->runningInConsole()) {
@@ -66,5 +60,17 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * A burst guard on POST /generations; the daily caps live in GenerationLimits.
+     */
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('generations', fn (Request $request): Limit => Limit::perMinute(config()->integer('limits.submits_per_minute'))
+            ->by('generations:'.($request->user()?->getAuthIdentifier() ?? $request->ip()))
+            ->response(fn () => back()->withErrors([
+                'limit' => "You're submitting too quickly. Please wait a minute and try again.",
+            ])));
     }
 }

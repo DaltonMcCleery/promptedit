@@ -45,8 +45,7 @@ class CreateGeneration
         $estimate = CostCalculator::estimate($sheet, $input['prompt'], $size, $quality, count($referenceImages));
 
         return DB::transaction(function () use ($user, $input, $size, $quality, $referenceImages, $estimate, $sheet): Generation {
-            // Held until commit, so the limit check and the insert happen as one step.
-            $this->limits->lock();
+            // Locks until commit, so the limit check and the insert happen as one step.
             $this->limits->ensureAllowed($user, $estimate->maxNanos);
 
             $generation = $user->generations()->create([

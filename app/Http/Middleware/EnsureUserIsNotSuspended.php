@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * End the session of a user suspended while signed in, on their next request.
  */
-class LogOutSuspendedUsers
+class EnsureUserIsNotSuspended
 {
     /**
      * @param  Closure(Request): (Response)  $next
@@ -22,7 +22,7 @@ class LogOutSuspendedUsers
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return to_route('login')->with('status', 'This account is suspended.');
+            return to_route('login')->with('status', __('auth.suspended'));
         }
 
         return $next($request);

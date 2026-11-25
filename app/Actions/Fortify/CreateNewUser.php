@@ -63,8 +63,8 @@ class CreateNewUser implements CreatesNewUsers
 
     private function tooManyFromThisAddress(): bool
     {
-        return RateLimiter::tooManyAttempts($this->key('hour'), (int) config('limits.registrations.per_hour'))
-            || RateLimiter::tooManyAttempts($this->key('day'), (int) config('limits.registrations.per_day'));
+        return RateLimiter::tooManyAttempts($this->key('hour'), config()->integer('limits.registrations.per_hour'))
+            || RateLimiter::tooManyAttempts($this->key('day'), config()->integer('limits.registrations.per_day'));
     }
 
     private function countAttempt(): void

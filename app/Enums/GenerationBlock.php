@@ -25,7 +25,7 @@ enum GenerationBlock: string
     {
         return match ($this) {
             self::Disabled => 'Generating is turned off for now. Please try again later.',
-            self::Suspended => 'This account is suspended.',
+            self::Suspended => __('auth.suspended'),
             self::TooManyUnfinished => 'Wait for one of your running generations to finish before starting another.',
             self::UserDailyGenerations => "You've reached today's limit on generations. It resets at midnight UTC.",
             self::UserDailySpend => "This would take you past today's spending limit. It resets at midnight UTC.",

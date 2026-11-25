@@ -54,7 +54,7 @@ class FortifyServiceProvider extends ServiceProvider
             }
 
             if ($user->isSuspended()) {
-                throw ValidationException::withMessages([Fortify::username() => 'This account is suspended.']);
+                throw ValidationException::withMessages([Fortify::username() => __('auth.suspended')]);
             }
 
             return $user;

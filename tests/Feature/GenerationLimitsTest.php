@@ -8,8 +8,10 @@ use App\Models\Generation;
 use App\Models\User;
 use App\Services\Billing\CostCalculator;
 use App\Services\Billing\Nanos;
+use App\Services\GenerationLimits;
 use App\Services\Pixelforge\PricingRepository;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Testing\TestResponse;
@@ -174,4 +176,21 @@ it('tells the user why they are blocked and hides per-user usage from admins', f
         ->assertInertia(fn (Assert $page) => $page
             ->where('limits.blocked', GenerationBlock::Disabled->message())
             ->where('limits.user', null));
+});
+
+it('refuses a suspended user even without the sign-out middleware', function () {
+    $user = User::factory()->create(['suspended_at' => now()]);
+
+    expect(app(GenerationLimits::class)->blockFor($user))->toBe(GenerationBlock::Suspended);
+});
+
+it('must be called inside a transaction, so the lock covers the insert', function () {
+    DB::rollBack(); // Leave RefreshDatabase's wrapping transaction for this check.
+
+    try {
+        expect(fn () => app(GenerationLimits::class)->ensureAllowed(User::factory()->make(), 0))
+            ->toThrow(LogicException::class);
+    } finally {
+        DB::beginTransaction();
+    }
 });

@@ -6,10 +6,9 @@ use App\Enums\GenerationBlock;
 use App\Models\Generation;
 use App\Models\User;
 use App\Services\Billing\Nanos;
-use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 
 /**
  * The caps in config/limits.php: per user, across the app, and the switch
@@ -25,21 +24,22 @@ class GenerationLimits
     private const int LOCK_KEY = 7_340_001;
 
     /**
-     * Take the app-wide lock for the rest of the current transaction, so two
-     * requests can't both pass a check that only one of them should.
-     */
-    public function lock(): void
-    {
-        DB::statement('select pg_advisory_xact_lock(?)', [self::LOCK_KEY]);
-    }
-
-    /**
-     * Refuse the generation when it would break a limit. Call after lock().
+     * Refuse the generation when it would break a limit.
+     *
+     * Call inside the transaction that inserts the generation: the lock is
+     * held until it commits, so two requests can't both pass a check that
+     * only one of them should.
      *
      * @throws ValidationException naming the limit that was hit.
      */
     public function ensureAllowed(User $user, int $estimateMaxNanos): void
     {
+        if (DB::transactionLevel() === 0) {
+            throw new LogicException('GenerationLimits::ensureAllowed() must run inside a transaction.');
+        }
+
+        DB::statement('select pg_advisory_xact_lock(?)', [self::LOCK_KEY]);
+
         $block = $this->blockFor($user, $estimateMaxNanos);
 
         if ($block !== null) {
@@ -52,7 +52,7 @@ class GenerationLimits
      */
     public function blockFor(User $user, int $estimateMaxNanos = 0): ?GenerationBlock
     {
-        if (! config('limits.generations_enabled')) {
+        if (! config()->boolean('limits.generations_enabled')) {
             return GenerationBlock::Disabled;
         }
 
@@ -63,11 +63,11 @@ class GenerationLimits
         if (! $user->is_admin) {
             $usage = $this->userUsage($user);
 
-            if ($usage['unfinished'] >= config('limits.user.unfinished')) {
+            if ($usage['unfinished'] >= config()->integer('limits.user.unfinished')) {
                 return GenerationBlock::TooManyUnfinished;
             }
 
-            if ($usage['generations'] >= config('limits.user.daily_generations')) {
+            if ($usage['generations'] >= config()->integer('limits.user.daily_generations')) {
                 return GenerationBlock::UserDailyGenerations;
             }
 
@@ -76,16 +76,14 @@ class GenerationLimits
             }
         }
 
-        $today = Generation::query()->where('created_at', '>=', $this->startOfToday());
-
-        if ($today->clone()->count() >= config('limits.app.daily_generations')) {
+        if (Generation::query()->createdToday()->count() >= config()->integer('limits.app.daily_generations')) {
             return GenerationBlock::AppDailyGenerations;
         }
 
-        $appSpend = (int) $today->clone()->succeeded()->sum('provider_cost_nanos')
-            + (int) $today->clone()->unfinished()->sum('estimate_max_nanos');
+        $appSpend = (int) Generation::query()->createdToday()->succeeded()->sum('provider_cost_nanos')
+            + (int) Generation::query()->createdToday()->unfinished()->sum('estimate_max_nanos');
 
-        if ($appSpend + $estimateMaxNanos > Nanos::fromDecimal(config('limits.app.daily_spend'))) {
+        if ($appSpend + $estimateMaxNanos > Nanos::fromDecimal(config()->string('limits.app.daily_spend'))) {
             return GenerationBlock::AppDailySpend;
         }
 
@@ -99,14 +97,11 @@ class GenerationLimits
      */
     public function userUsage(User $user): array
     {
-        /** @var Builder<Generation> $today */
-        $today = $user->generations()->where('created_at', '>=', $this->startOfToday())->getQuery();
-
         return [
             'unfinished' => $user->generations()->unfinished()->count(),
-            'generations' => $today->clone()->count(),
-            'spend_nanos' => (int) $today->clone()->succeeded()->sum('charge_nanos')
-                + (int) $today->clone()->unfinished()->sum('estimate_max_nanos'),
+            'generations' => $user->generations()->createdToday()->count(),
+            'spend_nanos' => (int) $user->generations()->createdToday()->succeeded()->sum('charge_nanos')
+                + (int) $user->generations()->createdToday()->unfinished()->sum('estimate_max_nanos'),
         ];
     }
 
@@ -123,9 +118,9 @@ class GenerationLimits
             'blocked' => $this->blockFor($user)?->message(),
             'user' => $usage === null ? null : [
                 'unfinished' => $usage['unfinished'],
-                'unfinished_limit' => (int) config('limits.user.unfinished'),
+                'unfinished_limit' => config()->integer('limits.user.unfinished'),
                 'generations' => $usage['generations'],
-                'generations_limit' => (int) config('limits.user.daily_generations'),
+                'generations_limit' => config()->integer('limits.user.daily_generations'),
                 'spend_nanos' => $usage['spend_nanos'],
                 'spend_limit_nanos' => $this->userSpendLimit(),
             ],
@@ -134,11 +129,6 @@ class GenerationLimits
 
     private function userSpendLimit(): int
     {
-        return Nanos::fromDecimal(config('limits.user.daily_spend'));
-    }
-
-    private function startOfToday(): CarbonImmutable
-    {
-        return CarbonImmutable::now('UTC')->startOfDay();
+        return Nanos::fromDecimal(config()->string('limits.user.daily_spend'));
     }
 }

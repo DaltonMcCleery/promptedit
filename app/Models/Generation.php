@@ -114,6 +114,17 @@ class Generation extends Model
     }
 
     /**
+     * Created since midnight UTC (the app's timezone), for the daily limits.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function createdToday(Builder $query): void
+    {
+        $query->where('created_at', '>=', today());
+    }
+
+    /**
      * Finished with an image, so billed.
      *
      * @param  Builder<self>  $query
